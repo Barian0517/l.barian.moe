@@ -7,7 +7,8 @@ import { MusicTrack } from '../types';
 const FloatingMusicPlayer: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  // Default to playing on load
+  const [isPlaying, setIsPlaying] = useState(true);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -40,9 +41,21 @@ const FloatingMusicPlayer: React.FC = () => {
                     const decodedName = decodeURIComponent(fileName);
                     // Remove extension
                     const title = decodedName.replace(/\.[^/.]+$/, "");
+                    
+                    // Try to guess artist if format is "Artist - Title" or similar, otherwise default
+                    let artist = "Unknown";
+                    let trackTitle = title;
+                    
+                    if (title.includes('-')) {
+                        const parts = title.split('-');
+                        if (parts.length >= 2) {
+                            // Simple heuristic, could be improved
+                        }
+                    }
+
                     return {
-                        title: title,
-                        artist: "Unknown", 
+                        title: trackTitle,
+                        artist: "Playlist Track", 
                         url: cleanUrl
                     };
                 });
@@ -51,7 +64,6 @@ const FloatingMusicPlayer: React.FC = () => {
             }
         } catch (error) {
             console.error("Failed to fetch playlist, using default:", error);
-            // Fallback to default playlist in constants is automatic since we initialized state with it
         }
     };
     fetchPlaylist();
@@ -59,33 +71,51 @@ const FloatingMusicPlayer: React.FC = () => {
 
   const currentTrack = playlist[currentTrackIndex] || playlist[0];
 
+  // Handle Autoplay logic on mount
+  useEffect(() => {
+    if (audioRef.current) {
+        // Attempt to play immediately on mount
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.warn("Autoplay prevented:", error);
+                setIsPlaying(false); // Update UI to show paused state if blocked
+            });
+        }
+    }
+  }, []);
+
+  // Handle Volume Changes
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }
   }, [volume]);
 
+  // Handle Track Change
   useEffect(() => {
     if (isPlaying && audioRef.current) {
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-          playPromise.catch(e => {
-              console.error("Playback failed/interrupted", e);
-              setIsPlaying(false);
-          });
-      }
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => console.warn("Play interrupted", e));
+        }
     }
-  }, [currentTrackIndex, currentTrack]);
+  }, [currentTrackIndex, currentTrack]); 
 
   const togglePlay = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().catch(e => {
+          console.warn("Play prevented", e);
+          setIsPlaying(false);
+      });
+      setIsPlaying(true);
     }
   };
 
@@ -139,8 +169,6 @@ const FloatingMusicPlayer: React.FC = () => {
 
   const handleMouseLeave = () => {
     setIsExpanded(false);
-    // Delay view reset slightly to allow transition to finish, or reset immediately
-    // Using immediate reset for simplicity in logic next open
     setTimeout(() => setShowPlaylist(false), 300);
   };
 
@@ -162,9 +190,11 @@ const FloatingMusicPlayer: React.FC = () => {
     <>
       <audio 
         ref={audioRef} 
-        src={currentTrack?.url} 
+        src={currentTrack?.url}
+        crossOrigin="anonymous"  
         onTimeUpdate={handleTimeUpdate}
         onEnded={nextTrack}
+        autoPlay // Helps with mobile restrictions sometimes
       />
 
       <div 
@@ -175,10 +205,10 @@ const FloatingMusicPlayer: React.FC = () => {
       >
         <AnimatePresence mode="wait">
           {!isExpanded ? (
-            /* COLLAPSED STATE: Floating Disc + Particles */
+            /* COLLAPSED STATE: Floating Disc + Particles + Marquee */
             <motion.div
               key="collapsed"
-              className="relative w-16 h-16 cursor-pointer"
+              className="flex items-center gap-3 cursor-pointer"
               initial="initial"
               animate="animate"
               exit="exit"
@@ -188,9 +218,9 @@ const FloatingMusicPlayer: React.FC = () => {
                  variants={{
                    initial: { scale: 0, opacity: 0 },
                    animate: { scale: 1, opacity: 1, transition: { type: "spring", duration: 0.5 } },
-                   exit: { scale: 1.5, opacity: 0, filter: "blur(10px)", transition: { duration: 0.3 } }
+                   exit: { scale: 0, opacity: 0, filter: "blur(10px)", transition: { duration: 0.3 } }
                  }}
-                 className="relative w-full h-full rounded-full border-2 border-white/20 bg-black/80 shadow-[0_0_20px_rgba(77,138,255,0.3)] flex items-center justify-center overflow-hidden group"
+                 className="relative w-16 h-16 flex-shrink-0 rounded-full border-2 border-white/20 bg-black/80 shadow-[0_0_20px_rgba(77,138,255,0.3)] flex items-center justify-center overflow-hidden group"
               >
                 {/* Spinning Texture */}
                 <div className={`absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-50 ${isPlaying ? 'animate-spin-slow' : ''}`}></div>
@@ -199,46 +229,62 @@ const FloatingMusicPlayer: React.FC = () => {
                       <div className="w-4 h-4 rounded-full bg-cyan-500/50 blur-[2px]"></div>
                    </div>
                 </div>
+
+                {/* Implosion Particles (Only visible on Entrance) */}
+                {particles.map((_, i) => (
+                    <motion.div
+                        key={`in-${i}`}
+                        className="absolute top-1/2 left-1/2 w-1 h-1 bg-cyan-400 rounded-full"
+                        variants={{
+                        initial: { 
+                            x: (Math.random() - 0.5) * 100, 
+                            y: (Math.random() - 0.5) * 100, 
+                            opacity: 0 
+                        },
+                        animate: { 
+                            x: 0, 
+                            y: 0, 
+                            opacity: 0,
+                            transition: { duration: 0.5, ease: "easeOut" } 
+                        }
+                        }}
+                    />
+                ))}
               </motion.div>
 
-              {/* Implosion Particles (Only visible on Entrance) */}
-              {particles.map((_, i) => (
+              {/* Marquee Info (Visible only when playing) */}
+              {isPlaying && (
                   <motion.div
-                    key={`in-${i}`}
-                    className="absolute top-1/2 left-1/2 w-1 h-1 bg-cyan-400 rounded-full"
-                    variants={{
-                      initial: { 
-                          x: (Math.random() - 0.5) * 100, 
-                          y: (Math.random() - 0.5) * 100, 
-                          opacity: 0 
-                      },
-                      animate: { 
-                          x: 0, 
-                          y: 0, 
-                          opacity: 0,
-                          transition: { duration: 0.5, ease: "easeOut" } 
-                      }
-                    }}
-                  />
-              ))}
-
-              {/* Explosion Particles (Only visible on Exit) */}
-              {particles.map((_, i) => (
-                  <motion.div
-                    key={`out-${i}`}
-                    className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-cyan-300 rounded-full blur-[1px]"
-                    variants={{
-                      animate: { opacity: 0 },
-                      exit: { 
-                          x: (Math.random() - 0.5) * 150, 
-                          y: (Math.random() - 0.5) * 150, 
-                          opacity: [1, 0],
-                          scale: 0,
-                          transition: { duration: 0.4, ease: "easeOut" } 
-                      }
-                    }}
-                  />
-              ))}
+                    initial={{ opacity: 0, x: -10, width: 0 }}
+                    animate={{ opacity: 1, x: 0, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0, transition: { duration: 0.2 } }}
+                    className="h-8 px-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center overflow-hidden max-w-[180px]"
+                  >
+                      <div className="w-full overflow-hidden flex items-center h-full mask-gradient">
+                          <motion.div 
+                             className="flex gap-8 text-[10px] font-mono text-cyan-100/70 whitespace-nowrap"
+                             animate={{ x: "-50%" }}
+                             transition={{ 
+                               ease: "linear", 
+                               duration: 10, 
+                               repeat: Infinity 
+                             }}
+                          >
+                              {/* Duplicated content for seamless loop */}
+                              <div className="flex items-center gap-2">
+                                <span>{currentTrack?.title}</span>
+                                <span className="opacity-50">-</span>
+                                <span>{currentTrack?.artist}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span>{currentTrack?.title}</span>
+                                <span className="opacity-50">-</span>
+                                <span>{currentTrack?.artist}</span>
+                              </div>
+                          </motion.div>
+                      </div>
+                  </motion.div>
+              )}
             </motion.div>
           ) : (
             /* EXPANDED STATE: Player UI */

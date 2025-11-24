@@ -126,9 +126,19 @@ export const PROFILE_DATA: ProfileData = {
     },
     {
       title: "咬舌釘",
-      artist: "Tae", 
+      artist: "魚骨妹", 
       url: "https://cloudreve.barian.moe/f/2dvUQ/%E5%92%AC%E8%88%8C%E9%92%89.mp3"
-    }
+    },    
+    {
+      title: "愛哎唉",
+      artist: "魚骨妹",
+      url: "https://cloudreve.barian.moe/f/BdDfl/%E7%88%B1%E5%93%8E%E5%94%89.mp3"
+    },
+    {
+      title: "怎麼辦 我還是愛你",
+      artist: "魚骨妹",
+      url: "https://cloudreve.barian.moe/f/mg4hB/%E6%80%8E%E9%BA%BC%E8%BE%A6%20%E6%88%91%E9%82%84%E6%98%AF%E6%84%9B%E4%BD%A0.mp3"
+    },
   ]
 };
 

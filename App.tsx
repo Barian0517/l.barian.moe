@@ -5,6 +5,7 @@ import SocialRow from './components/SocialRow';
 import FloatingMusicPlayer from './components/FloatingMusicPlayer';
 import SakuraOverlay from './components/SakuraOverlay';
 import IntroAnimation from './components/IntroAnimation';
+import AudioVisualizer from './components/AudioVisualizer';
 import { PROFILE_DATA, SECTION_IMAGES } from './constants';
 import { GameItem } from './types';
 
@@ -121,9 +122,10 @@ const App: React.FC = () => {
                 `}</style>
             </div>
 
-            {/* GLOBAL OVERLAY EFFECT */}
+            {/* VISUAL EFFECTS OVERLAY */}
             <SakuraOverlay />
-
+            <AudioVisualizer />
+            
             {/* FLOATING MUSIC PLAYER */}
             <FloatingMusicPlayer />
 
@@ -132,6 +134,7 @@ const App: React.FC = () => {
                 
                 {/* HEADER */}
                 <div className="flex flex-col items-center text-center w-full">
+                    {/* Avatar Container */}
                     <motion.div 
                         initial={{ scale: 0 }} 
                         animate={{ 
@@ -145,12 +148,12 @@ const App: React.FC = () => {
                             y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
                             boxShadow: { duration: 3, repeat: Infinity, ease: "easeInOut" }
                         }}
-                        className="relative p-1 bg-gradient-to-tr from-cyan-500 to-purple-500 rounded-full cursor-pointer"
+                        className="relative p-1 bg-gradient-to-tr from-cyan-500 to-purple-500 rounded-full cursor-pointer group"
                     >
                         <img 
                             src={PROFILE_DATA.avatarUrl} 
                             alt="Avatar" 
-                            className="w-32 h-32 rounded-full object-cover border-4 border-[#0f0f0f]"
+                            className="relative z-10 w-32 h-32 rounded-full object-cover border-4 border-[#0f0f0f]"
                         />
                     </motion.div>
                     
@@ -158,7 +161,7 @@ const App: React.FC = () => {
                         initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
                         className="mt-6 space-y-1"
                     >
-                        <h1 className="text-3xl font-bold text-[#4d8aff] drop-shadow-[0_0_15px_rgba(77,138,255,0.6)] animate-pulse">
+                        <h1 className="m-6 text-3xl font-bold text-[#4d8aff] drop-shadow-[0_0_15px_rgba(77,138,255,0.6)] animate-pulse">
                             {PROFILE_DATA.displayName}
                         </h1>
                         <p className="text-[#a78bfa] font-medium tracking-wider text-xl italic">
