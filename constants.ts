@@ -1,26 +1,6 @@
-import { Instagram, Facebook, Youtube, Music } from 'lucide-react';
+import { Instagram, Facebook, Youtube, Music, Home } from 'lucide-react';
 import { ProfileData, SocialLink } from './types';
 import React from 'react';
-
-// Custom TikTok Icon
-export const TikTokIcon: React.FC<{ className?: string; size?: number | string }> = ({ size = 24, className = "" }) => {
-  return React.createElement(
-    "svg",
-    {
-      xmlns: "http://www.w3.org/2000/svg",
-      width: size,
-      height: size,
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: "2",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      className: className
-    },
-    React.createElement("path", { d: "M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" })
-  );
-};
 
 export const MUSIC_PLAYLIST_URL = "https://cloudreve.barian.moe/f/jddcb/music.txt";
 
@@ -146,7 +126,7 @@ export const SOCIAL_LINKS: SocialLink[] = [
   { platform: "Instagram", url: "https://www.instagram.com/barian_yyy/", icon: Instagram, color: "hover:text-pink-500" },
   { platform: "Facebook", url: "https://www.facebook.com/barian0517/", icon: Facebook, color: "hover:text-blue-500" },
   { platform: "YouTube", url: "https://www.youtube.com/@barian0517", icon: Youtube, color: "hover:text-red-500" },
-  { platform: "TikTok", url: "https://v.douyin.com/iUYSHxcS/", icon: TikTokIcon, color: "hover:text-cyan-400" },
+  { platform: "Home", url: "https://home.barian.moe", icon: Home, color: "hover:text-cyan-400" },
 ];
 
 // Placeholder images to use between sections

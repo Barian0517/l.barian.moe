@@ -6,7 +6,7 @@ import React, { useEffect, useRef } from 'react';
 // ==========================================
 const VISUALIZER_CONFIG = {
   // 5. 形式: 'circular' (圓形) | 'linear' (直線)
-  mode: 'linear' as 'linear' | 'circular', 
+  mode: 'circular' as 'linear' | 'circular', 
 
   // 1. 角度: 圓形的起始旋轉角度 (0-360度)。僅在 mode='circular' 時有效。
   //    控制第一個律動條從圓的哪個位置開始長。
@@ -27,7 +27,7 @@ const VISUALIZER_CONFIG = {
   // 6. 位置: 律動條的中心點位置 (螢幕百分比 0-100)
   //    x: 水平位置 (50 為正中間), y: 垂直位置 (50 為正中間)
   //    例如直線模式想放在底部，可設為 { x: 50, y: 90 }
-  position: { x: 50, y: 90 },
+  position: { x: 50, y: 60 },
 
   // 7. 大小: 整體縮放比例 (建議 0.5 ~ 2.0)
   //    控制圓形的半徑或直線的總寬度/高度
