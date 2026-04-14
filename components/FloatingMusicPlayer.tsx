@@ -85,6 +85,36 @@ const FloatingMusicPlayer: React.FC = () => {
     }
   }, []);
 
+  // Interaction Fallback: If autoplay failed, try again on first interaction
+  useEffect(() => {
+    const handleInteraction = () => {
+      if (audioRef.current && audioRef.current.paused && isPlaying) {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    // Success, remove listeners
+                    document.removeEventListener('click', handleInteraction);
+                    document.removeEventListener('touchstart', handleInteraction);
+                })
+                .catch(e => console.warn("Still blocked", e));
+        }
+      }
+    };
+
+    // If we think we should be playing but audio is paused (likely blocked)
+    if (isPlaying) {
+        document.addEventListener('click', handleInteraction);
+        document.addEventListener('touchstart', handleInteraction);
+    }
+
+    return () => {
+        document.removeEventListener('click', handleInteraction);
+        document.removeEventListener('touchstart', handleInteraction);
+    };
+  }, [isPlaying]); // Re-run if isPlaying state flips
+
+
   // Handle Volume Changes
   useEffect(() => {
     if (audioRef.current) {

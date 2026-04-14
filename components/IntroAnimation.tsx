@@ -65,7 +65,7 @@ const MatrixBackground = ({ mode }: { mode: 'normal' | 'access' }) => {
 // 2. 主動畫元件
 // ==========================================
 const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
-  // Stages: Clock -> Login (Input) -> Loading -> Access (Success) -> Message -> Finish
+  // Stages: Clock -> Login (Input) -> Loading -> Access (Success) -> Message -> Finish (Wait for click)
   const [stage, setStage] = useState<'clock' | 'login' | 'loading' | 'access' | 'message' | 'finish'>('clock');
   const [time, setTime] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
@@ -74,6 +74,12 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
   // Skip Logic
   const [showSkipHint, setShowSkipHint] = useState(false);
   const handleInteraction = () => {
+    // If the animation has reached the end, click triggers completion
+    if (stage === 'finish') {
+        onComplete();
+        return;
+    }
+
     if (!showSkipHint) {
         setShowSkipHint(true);
     } else {
@@ -85,7 +91,7 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
     const handleKeyDown = () => handleInteraction();
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showSkipHint, onComplete]);
+  }, [showSkipHint, stage, onComplete]);
 
   // Sequence Controller
   useEffect(() => {
@@ -96,13 +102,9 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
     const MESSAGE_START = 7500;
     
     // Typing Duration Calculation:
-    // Text: "你在看我嗎?" (6 chars)
-    // Speed: 800ms interval
-    // Duration: 6 * 800ms = 4800ms
+    // Text: "你在看我嗎?" (6 chars) * 800ms = 4800ms
     // Message End: 7500 + 4800 = 12300ms
-    // Buffer: +700ms for reading = 13000ms
     const FINISH_START = 13000;
-    const COMPLETE_TIME = 13500;
 
     // 1. Clock (0 -> 2.5s)
     const t1 = setTimeout(() => setStage('login'), LOGIN_START);
@@ -118,15 +120,20 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
     // 4. Access -> Message (Starts at 7.5s)
     const t4 = setTimeout(() => setStage('message'), MESSAGE_START);
 
-    // 5. Message -> Finish (Starts after typing completes)
-    const t5 = setTimeout(() => setStage('finish'), FINISH_START);
-
-    // 6. Complete (Unmount)
-    const t6 = setTimeout(onComplete, COMPLETE_TIME);
+    // 5. Message -> Finish OR Complete
+    const t5 = setTimeout(() => {
+        // Desktop: Skip finish screen, go straight to app to avoid extra click
+        if (window.innerWidth >= 768) {
+            onComplete();
+        } else {
+            // Mobile: Go to finish screen to force interaction (needed for audio autoplay)
+            setStage('finish');
+        }
+    }, FINISH_START);
 
     return () => {
       clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); 
-      clearTimeout(t4); clearTimeout(t5); clearTimeout(t6);
+      clearTimeout(t4); clearTimeout(t5);
     };
   }, [onComplete]);
 
@@ -168,7 +175,6 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
     let i = 0;
     setMessageTyped(''); // Reset
     
-    // Slowed down to 800ms per character as requested
     const interval = setInterval(() => {
         if (i < target.length) {
             const char = target.charAt(i);
@@ -210,10 +216,8 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
       <div className="absolute inset-0 z-[10] pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none" />
       <div className="absolute inset-0 z-[10] pointer-events-none bg-radial-gradient-center from-transparent to-black/80" />
 
-      {/* Background */}
-      {stage !== 'finish' && (
-        <MatrixBackground mode={(stage === 'access' || stage === 'loading') ? 'access' : 'normal'} />
-      )}
+      {/* Background - kept during finish stage to look cool */}
+      <MatrixBackground mode={(stage === 'access' || stage === 'loading' || stage === 'finish') ? 'access' : 'normal'} />
 
       {/* Main Content Area */}
       <div className="relative z-30 w-full h-full flex items-center justify-center p-8">
@@ -364,8 +368,6 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="relative z-50 flex flex-col items-center"
             >
-                {/* Use font-sans to ensure Chinese characters (like '在') render correctly. 
-                    Added min-height to prevent layout shifts. */}
                 <h1 className="text-2xl md:text-4xl font-normal tracking-[0.5em] text-white drop-shadow-[0_0_10px_white] text-center mix-blend-screen font-sans min-h-[48px]">
                     {messageTyped}
                     <span className="animate-pulse inline-block w-3 h-8 align-middle bg-white ml-2"/>
@@ -373,11 +375,26 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
             </motion.div>
           )}
 
+          {/* STAGE 6: FINISH (Only visible on Mobile now due to logic in useEffect) */}
+          {stage === 'finish' && (
+            <motion.div
+              key="finish"
+              initial={{ opacity: 0, scale: 0.9 }} 
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.5, filter: "blur(20px)" }}
+              className="flex flex-col items-center gap-6 z-50"
+            >
+               <div className="text-cyan-400 text-xl md:text-2xl font-bold tracking-[0.2em] animate-pulse border-y border-cyan-400/50 py-2 bg-black/50 backdrop-blur-sm shadow-[0_0_15px_rgba(34,211,238,0.4)]">
+                  &lt;&lt; 點擊後繼續 &gt;&gt;
+               </div>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </div>
 
-      {/* SKIP HINT OVERLAY */}
-      {showSkipHint && (
+      {/* SKIP HINT OVERLAY (Only show if not in finish stage) */}
+      {showSkipHint && stage !== 'finish' && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="absolute bottom-8 z-[200] text-gray-500 text-[10px] tracking-[0.3em] font-bold animate-pulse"
